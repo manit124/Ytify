@@ -22,7 +22,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # Flask app setup
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-REDIRECT_URI = "http://localhost:5001/callback"
+REDIRECT_URI = "https://ytify-a3a3cc6ad5a7.herokuapp.com/callback"
 
 
 # Spotify API URLs
