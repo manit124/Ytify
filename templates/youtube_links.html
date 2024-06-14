@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube Links</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #FF0000;
+            text-align: center;
+        }
+        ol {
+            padding: 0;
+            counter-reset: item;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        li {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: left;
+            list-style-type: none;
+            counter-increment: item;
+            position: relative;
+            padding-left: 35px;
+        }
+        li:before {
+            content: counter(item) ". ";
+            font-weight: bold;
+            margin-right: 10px;
+            position: absolute;
+            left: 10px;
+        }
+        a {
+            color: #FF0000;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>YouTube Links for Playlist</h1>
+    <ol>
+        {% for link in youtube_links %}
+            <li><a href="{{ link.youtube_link }}" target="_blank">{{ link.track_name }}: {{ link.artist_name }}</a></li>
+        {% endfor %}
+    </ol>
+</body>
+</html>

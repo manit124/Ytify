@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spotify Playlists</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #1DB954;
+            text-align: center;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        a {
+            color: #1DB954;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        form {
+            margin: 0;
+        }
+        button {
+            background-color: #1DB954;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #14863b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your Spotify Playlists</h1>
+    <ul>
+        {% for playlist in playlists %}
+        <li>
+            <span>{{ playlist.name }} - <a href="{{ playlist.url }}" target="_blank">Open in Spotify</a></span>
+            <form action="/playlist/{{ playlist.id }}/youtube-links" method="post">
+                <button type="submit">Get YouTube Links</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
