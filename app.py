@@ -12,11 +12,27 @@ from flask_sqlalchemy import SQLAlchemy
 # Load environment variables
 load_dotenv()
 
+# Retrieve client ID, client secret, and YouTube API key from environment variables
+client_id = os.getenv("CLIENT_ID")
+client_secret = os.getenv("CLIENT_SECRET")
+SECRET_KEY = os.getenv('SECRET_KEY')
+
 # Flask app setup
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spotify_tokens.db'
+REDIRECT_URI = "https://ytify-jvoc.onrender.com/callback"
+
+# Configure SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 db = SQLAlchemy(app)
+
+# Define models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    spotify_id = db.Column(db.String(255), unique=True, nullable=False)
+    access_token = db.Column(db.String(255), nullable=False)
+    refresh_token = db.Column(db.String(255), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
 
 # Spotify API URLs
 AUTH_URL = 'https://accounts.spotify.com/authorize'
@@ -25,13 +41,6 @@ API_BASE_URL = 'https://api.spotify.com/v1/'
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
-
-# Database model for storing user tokens
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    spotify_id = db.Column(db.String(255), unique=True, nullable=False)
-    access_token = db.Column(db.String(255), nullable=False)
-    refresh_token = db.Column(db.String(255), nullable=False)
 
 # Routes
 @app.route('/')
@@ -43,10 +52,10 @@ def login():
     scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative'
 
     params = {
-        'client_id': os.getenv("CLIENT_ID"),
+        'client_id': client_id,
         'response_type': 'code',
         'scope': scope,
-        'redirect_uri': os.getenv("REDIRECT_URI"),
+        'redirect_uri': REDIRECT_URI,
         'show_dialog': True
     }
     query_string = urllib.parse.urlencode(params)
@@ -62,15 +71,17 @@ def callback():
         req_body = {
             'code': request.args['code'],
             'grant_type': 'authorization_code',
-            'redirect_uri': os.getenv("REDIRECT_URI"),
-            'client_id': os.getenv("CLIENT_ID"),
-            'client_secret': os.getenv("CLIENT_SECRET")
+            'redirect_uri': REDIRECT_URI,
+            'client_id': client_id,
+            'client_secret': client_secret
         }
 
         response = requests.post(TOKEN_URL, data=req_body)
         token_info = response.json()
 
-        store_user_tokens(token_info['access_token'], token_info['refresh_token'])
+        session['access_token'] = token_info.get('access_token')
+        session['refresh_token'] = token_info.get('refresh_token')
+        session['expires_at'] = datetime.now().timestamp() + token_info.get('expires_in', 0)
 
         return redirect('/playlists')
 
@@ -79,12 +90,11 @@ def get_playlists():
     if 'access_token' not in session:
         return redirect('/login')
 
-    user = User.query.filter_by(spotify_id=session['spotify_id']).first()
-    if not user:
-        return redirect('/login')
+    if 'expires_at' in session and datetime.now().timestamp() > session['expires_at']:
+        return redirect('/refresh-token')
 
     headers = {
-        'Authorization': f"Bearer {user.access_token}"
+        'Authorization': f"Bearer {session['access_token']}"
     }
     response = requests.get(API_BASE_URL + "me/playlists", headers=headers)
     playlists = response.json()
@@ -100,11 +110,73 @@ def get_playlists():
 
     return render_template('playlists.html', playlists=simplified_playlists)
 
-def store_user_tokens(access_token, refresh_token):
-    user = User(spotify_id=session['spotify_id'], access_token=access_token, refresh_token=refresh_token)
-    db.session.add(user)
-    db.session.commit()
+@app.route('/refresh-token')
+def refresh_token():
+    if 'refresh_token' not in session:
+        return redirect('/login')
+
+    if 'expires_at' in session and datetime.now().timestamp() > session['expires_at']:
+        req_body = {
+            'grant_type': 'refresh_token',
+            'refresh_token': session['refresh_token'],
+            'client_id': client_id,
+            'client_secret': client_secret
+        }
+
+        response = requests.post(TOKEN_URL, data=req_body)
+        new_token_info = response.json()
+
+        session['access_token'] = new_token_info.get('access_token')
+        session['expires_at'] = datetime.now().timestamp() + new_token_info.get('expires_in', 0)
+
+        return redirect('/playlists')
+
+@app.route('/playlist/<playlist_id>/youtube-links', methods=['POST'])
+def youtube_links(playlist_id):
+    if 'access_token' not in session:
+        return jsonify({"message": "Not logged in"}), 401
+
+    headers = {
+        'Authorization': f"Bearer {session['access_token']}"
+    }
+    response = requests.get(API_BASE_URL + f"playlists/{playlist_id}/tracks", headers=headers)
+    tracks = response.json()
+
+    if 'items' not in tracks:
+        return jsonify({"error": "Unable to fetch playlist tracks"}), 500
+
+    track_details = [{"track_name": track['track']['name'], "artist_name": track['track']['artists'][0]['name']} for track in tracks['items']]
+    logging.debug(f"Track details extracted: {track_details}")
+
+    # Function to search YouTube video links using BeautifulSoup
+    def search_youtube_video(query):
+        try:
+            search_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
+            response = requests.get(search_url)
+            if response.status_code == 200:
+                video_id = re.search(r"watch\?v=(\S{11})", response.text).group(1)
+                video_link = f"https://www.youtube.com/watch?v={video_id}"
+                logging.debug(f"Found YouTube link for query '{query}': {video_link}")
+                return video_link
+        except Exception as e:
+            logging.error(f"Error occurred while searching for YouTube video: {e}")
+        return None
+
+    # Extract YouTube links for each track
+    youtube_links = []
+    for track in track_details:
+        search_query = f"{track['track_name']} {track['artist_name']}"
+        youtube_link = search_youtube_video(search_query)
+        if youtube_link:
+            youtube_links.append({"track_name": track['track_name'], "artist_name": track['artist_name'], "youtube_link": youtube_link})
+        else:
+            logging.debug(f"No YouTube link found for track: {track}")
+
+    logging.debug(f"YouTube links found: {youtube_links}")
+
+    return render_template('youtube_links.html', youtube_links=youtube_links)
+
 
 if __name__ == '__main__':
-    db.create_all()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5001)) 
+    app.run(host='0.0.0.0', port=port)
