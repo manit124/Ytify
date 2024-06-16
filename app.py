@@ -40,7 +40,7 @@ def index():
 
 @app.route('/login')
 def login():
-    scope = 'user-read-private user-read-email'
+    scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative'
 
     params = {
         'client_id': client_id,
