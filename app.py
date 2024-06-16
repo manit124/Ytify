@@ -22,7 +22,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # Flask app setup
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-REDIRECT_URI = "https://ytify.onrender.com/callback"
+REDIRECT_URI = "https://ytify-jvoc.onrender.com/callback"
 
 
 # Spotify API URLs
