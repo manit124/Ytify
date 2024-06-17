@@ -25,6 +25,7 @@ app.secret_key = os.getenv("SECRET_KEY")
 REDIRECT_URI = "https://ytify-jvoc.onrender.com/callback"
 
 
+
 # Spotify API URLs
 AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
@@ -40,7 +41,7 @@ def index():
 
 @app.route('/login')
 def login():
-    scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative'
+    scope = 'user-read-private user-read-email'
 
     params = {
         'client_id': client_id,
