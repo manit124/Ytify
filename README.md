@@ -80,6 +80,3 @@ If you encounter any issues, ensure that:
 For further assistance, please open an issue on the GitHub repository.
 
 ---
-
-Feel free to customize this README file as per your project’s requirements.
-
