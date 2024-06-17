@@ -7,7 +7,7 @@ import requests
 import logging
 from bs4 import BeautifulSoup
 import re
-from flask_sqlalchemy import SQLAlchemy
+
 
 # Load environment variables
 load_dotenv()
@@ -17,22 +17,13 @@ client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+
+
 # Flask app setup
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 REDIRECT_URI = "https://ytify-jvoc.onrender.com/callback"
 
-# Configure SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-db = SQLAlchemy(app)
-
-# Define models
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    spotify_id = db.Column(db.String(255), unique=True, nullable=False)
-    access_token = db.Column(db.String(255), nullable=False)
-    refresh_token = db.Column(db.String(255), nullable=False)
-    expires_at = db.Column(db.DateTime, nullable=False)
 
 # Spotify API URLs
 AUTH_URL = 'https://accounts.spotify.com/authorize'
