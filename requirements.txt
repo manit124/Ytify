@@ -7,7 +7,7 @@ click==8.1.7
 DateTime==5.5
 exceptiongroup==1.2.1
 flask==3.0.3
-gunicorn==20.1.0  # Add this if deploying to Heroku or similar
+gunicorn==20.1.0
 h11==0.14.0
 idna==2.10
 importlib-metadata==7.1.0
@@ -20,10 +20,8 @@ packaging==24.0
 pandas==2.0.3
 python-dotenv==1.0.1
 requests==2.26.0
-urllib3==1.26.6  # Adjusted to a more common version
+urllib3==1.26.6
 setuptools==60.9.3
 wheel==0.37.0
 Flask-SQLAlchemy==3.1.1
-psycopg2-binary
-
-
+psycopg2-binary==2.9.6
